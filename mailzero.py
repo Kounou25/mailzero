@@ -49,6 +49,22 @@ def connexion_status():
         return jsonify({"status":f"{conn_email} n'est pas connecté !"}),404
     
 
+#endpoint pour la deconnexion au compte gmail
+@app.route('/mailzero/disconnect',methods=['POST'])
+def disconnect():
+    #on recupere d'abord l'email depuis la requete
+    data = request.json
+    kill_email = data.get('email')
+    if not kill_email or not kill_email in user_connexions:
+        return jsonify({"error":"aucune connexion trouver pour cet email !"}),404
+    else:
+        #deconnecter et supprimer l'email contenu dans le dictionnaire
+        kill_connexion = user_connexions.pop(kill_email)
+        kill_connexion.logout()
+        return jsonify({"message":"deconnexion effectuer avec succes !"}),200
+
+    
+
 
 
 
