@@ -1,10 +1,14 @@
-from flask import Flask,request,jsonify
+from flask import Flask,request,jsonify,session
 from email import message_from_bytes
 import imapclient
 
 app = Flask(__name__)
 user_connexions = {}
+app.secret_key="kounougilbert288@predator2024"
 
+
+#----------------------- logiques du programme -----------------------------
+#foonction de connexion au compte gmail
 def mail_connection(email,password):
     try:
         wolf = imapclient.IMAPClient('imap.gmail.com',ssl=True)
@@ -14,7 +18,7 @@ def mail_connection(email,password):
     except Exception as e:
         print(f"une erreur s'est produite lors de la connexion au compte {email}: {e}")
         return 1
-    
+
 
 #endpoint de connexion au compte gmail
 @app.route('/mailzero/connect', methods=['POST'])
@@ -30,8 +34,10 @@ def connexion():
     #si tout est bon, on etablie la connexion au compte gmail
 
     wolf = mail_connection(email,password)
+
     if wolf !=1:
         user_connexions[email]= wolf
+        
         return jsonify({"message":f'connexion etablie avec succes pour: {email}'}),200
     else:
         return jsonify({"error": 'erreur de la connexion !'}),401
@@ -63,6 +69,25 @@ def disconnect():
         kill_connexion.logout()
         return jsonify({"message":"deconnexion effectuer avec succes !"}),200
 
+#----------------------- endpoints pour d'autres fonctionnalites autres que lq connexion
+
+@app.route('/mailzero/folders',methods=['GET'])
+#fonction pour lister les dossiers du compte gmail
+def folders_list():
+    email = request.args.get('email')
+    wolf = user_connexions.get(email)
+
+    if not wolf:
+        return jsonify({"error": "Utilisateur non connecté ou introuvable"}), 404
+
+    try:
+        folders = wolf.list_folders()
+        folder_names = [folder[-1] for folder in folders]
+        return jsonify({"folders": folder_names}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
     
 
 
