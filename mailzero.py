@@ -37,6 +37,17 @@ def connexion():
         return jsonify({"error": 'erreur de la connexion !'}),401
         
 
+#endpoint pour verifier le status de la connexion
+@app.route('/mailzero/status',methods=['GET'])
+def connexion_status():
+    #on recupere d'abord l'email rechercher depuis la requete
+    conn_email = request.args.get('email')
+
+    if conn_email in user_connexions:
+        return jsonify({"status":f"{conn_email} est connecté !"}),200
+    else:
+        return jsonify({"status":f"{conn_email} n'est pas connecté !"}),404
+    
 
 
 
