@@ -4,6 +4,7 @@ import imapclient
 
 app = Flask(__name__)
 user_connexions = {}
+filtered_emails = {}
 app.secret_key="kounougilbert288@predator2024"
 
 
@@ -18,7 +19,7 @@ def mail_connection(email,password):
     except Exception as e:
         print(f"une erreur s'est produite lors de la connexion au compte {email}: {e}")
         return 1
-
+    
 
 #endpoint de connexion au compte gmail
 @app.route('/mailzero/connect', methods=['POST'])
@@ -87,8 +88,26 @@ def folders_list():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    
-    
+
+#endpoint pour recevoir les filtres
+@app.route('/mailzero/filters',methods=['POST'])
+def filters():
+    data = request.json
+    email = data.get('email')
+    wolf = user_connexions.get(email)
+    folder = data.get('folder')
+    filters = data.get('filter')
+    if not wolf :
+        return jsonify({"error":"Utilisateur non connecté ou introuvable !"}),404
+    else:
+        try:
+            wolf.select_folder(folder)
+            found_emails = wolf.search(filters)
+            # Stocker les résultats pour cet utilisateur
+            filtered_emails[email] = found_emails
+            return jsonify({"message": "Emails filtrés récupérés avec succès !", "emails": found_emails}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
 
