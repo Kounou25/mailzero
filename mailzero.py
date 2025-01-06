@@ -118,7 +118,7 @@ def filters():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
-
+#Endpoint pour afficher le nombre de resultats(mails) trouvé en fonction des filtres
 @app.route('/mailzero/count_mails',methods=['GET'])
 def count_mails():
     email = request.args.get('email')
@@ -137,7 +137,7 @@ def count_mails():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-
+#Endpoint pour afficher les emails trouves en fonction des filtres 
 @app.route('/mailzero/display_mails',methods=['GET'])
 def display_mails():
     email = request.args.get('email')
@@ -176,6 +176,52 @@ def display_mails():
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+
+
+#Endpoint pour marques les mails souhaité comme supprimer (ajouter a la corbeille)
+@app.route('/mailzero/delete',methods=['GET'])
+def delete_mails():
+    email = request.args.get('email')
+    wolf = user_connexions.get(email)
+    founded_mails = filtered_emails.get(email)
+
+    if not wolf:
+        return jsonify({"error":"Utilisateur non connecté ou introuvable !"}),404
+    else:
+        try:
+            delete_them = wolf.delete_messages(founded_mails)
+            if delete_them:
+                return jsonify({"message":f"{len(founded_mails)} marqués comme supprimés !"})
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+
+
+
+
+#Endpoint pour supprimer definitivement les mails
+@app.route('/mailzero/purge',methods=['GET'])
+def purge():
+    email = request.args.get('email')
+    wolf = user_connexions.get(email)
+    founded_mails = filtered_emails.get(email)
+
+    if not wolf:
+        return jsonify({"error":"Utilisateur non connecté ou introuvable !"}),404
+    else:
+        try:
+            purge_them = wolf.expunge()
+            if purge_them:
+                return jsonify({"message":f"{len(founded_mails)} nettoyer avec succès !"})
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+
+
+
 
 
 
