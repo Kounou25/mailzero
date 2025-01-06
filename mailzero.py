@@ -1,5 +1,6 @@
 from flask import Flask,request,jsonify,session
 from email import message_from_bytes
+from email.header import decode_header
 import imapclient
 
 app = Flask(__name__)
@@ -137,7 +138,44 @@ def count_mails():
             return jsonify({"error": str(e)}), 500
 
 
+@app.route('/mailzero/display_mails',methods=['GET'])
+def display_mails():
+    email = request.args.get('email')
+    wolf = user_connexions.get(email)
+    founded_mails = filtered_emails.get(email)
+    emails_list = []
 
+    if not wolf :
+        return jsonify({"error":"Utilisateur non connecté ou introuvable !"}),404
+    else:
+        try:
+            
+
+            brut_email_data = wolf.fetch(founded_mails, ['BODY.PEEK[]'])
+            for email_id in founded_mails:
+                email_data = brut_email_data[email_id][b'BODY[]']
+                processed_email_data = message_from_bytes(email_data)
+
+                #maintenant je recupere les données souhaité des emails exemple: objets,contenu etc...
+                subject_header = processed_email_data.get("subject", "Sans sujet")
+                email_subject = decode_header(subject_header)[0][0] if subject_header else "Sans sujet"
+                if isinstance(email_subject, bytes):
+                    email_subject = email_subject.decode()
+                receive_date = processed_email_data["date"]
+                sender = processed_email_data["from"]
+                receiver = processed_email_data["To"]
+
+                emails_list.append({
+                    "objet":email_subject,
+                    "date reception":receive_date,
+                    "emetteur":sender,
+                    "Destinataire":receiver,
+                })
+
+            return jsonify({"emails":emails_list}),200
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
 
