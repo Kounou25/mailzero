@@ -21,6 +21,14 @@ def mail_connection(email,password):
         return 1
     
 
+#fonction qui se charge de compter et retourner le nombre de mail trouver en fonction des filtres appliques
+def mail_counter(email):
+    founded_mail = filtered_emails.get(email)
+    return len(founded_mail)
+
+
+    
+
 #endpoint de connexion au compte gmail
 @app.route('/mailzero/connect', methods=['POST'])
 def connexion():
@@ -105,9 +113,30 @@ def filters():
             found_emails = wolf.search(filters)
             # Stocker les résultats pour cet utilisateur
             filtered_emails[email] = found_emails
-            return jsonify({"message": "Emails filtrés récupérés avec succès !", "emails": found_emails}), 200
+            return jsonify({"message": "Emails filtrés récupérés avec succès !"}), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+
+@app.route('/mailzero/count_mails',methods=['GET'])
+def count_mails():
+    email = request.args.get('email')
+    wolf = user_connexions.get(email)
+
+    if not wolf:
+        return jsonify({"error":"Utilisateur non connecter ou introuvable !"}),404
+    else:
+        try:
+            counted_mails = mail_counter(email)
+            if not counted_mails :
+                return jsonify({"error":"Erreur lors de la recuperation !"}),401
+            else:
+                return jsonify({"message":f"{counted_mails} trouvé !"}),200
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
 
 
 
