@@ -1,9 +1,11 @@
 from flask import Flask,request,jsonify,session
+from flask_cors import CORS
 from email import message_from_bytes
 from email.header import decode_header
 import imapclient
 
 app = Flask(__name__)
+CORS(app)
 user_connexions = {}
 filtered_emails = {}
 app.secret_key="kounougilbert288@predator2024"
@@ -102,10 +104,10 @@ def folders_list():
 @app.route('/mailzero/filters',methods=['POST'])
 def filters():
     data = request.json
-    email = data.get('email')
+    email = data.get('connectedMail')
     wolf = user_connexions.get(email)
-    folder = data.get('folder')
-    filters = data.get('filter')
+    folder = data.get('current_folder')
+    filters = data.get('filterFormated')
     if not wolf :
         return jsonify({"error":"Utilisateur non connecté ou introuvable !"}),404
     else:
@@ -130,7 +132,7 @@ def count_mails():
         try:
             counted_mails = mail_counter(email)
             if not counted_mails :
-                return jsonify({"error":"Erreur lors de la recuperation !"}),401
+                return jsonify({"error":"0 mails trouvés !"}),401
             else:
                 return jsonify({"message":f"{counted_mails} trouvé !"}),200
             
@@ -167,7 +169,7 @@ def display_mails():
 
                 emails_list.append({
                     "objet":email_subject,
-                    "date reception":receive_date,
+                    "date_reception":receive_date,
                     "emetteur":sender,
                     "Destinataire":receiver,
                 })
@@ -180,22 +182,32 @@ def display_mails():
 
 
 #Endpoint pour marques les mails souhaité comme supprimer (ajouter a la corbeille)
-@app.route('/mailzero/delete',methods=['GET'])
+@app.route('/mailzero/delete', methods=['GET'])
 def delete_mails():
-    email = request.args.get('email')
-    wolf = user_connexions.get(email)
-    founded_mails = filtered_emails.get(email)
+    email = request.args.get('email')  # Récupération de l'email
+    wolf = user_connexions.get(email)  # Connexion utilisateur associée à l'email
+    founded_mails = filtered_emails.get(email)  # Emails filtrés associés à l'utilisateur
 
+    # Vérifier si l'utilisateur est connecté
     if not wolf:
-        return jsonify({"error":"Utilisateur non connecté ou introuvable !"}),404
-    else:
-        try:
-            delete_them = wolf.delete_messages(founded_mails)
-            if delete_them:
-                return jsonify({"message":f"{len(founded_mails)} marqués comme supprimés !"})
+        return jsonify({"error": "Utilisateur non connecté ou introuvable !"}), 404
 
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+    # Vérifier si des emails sont disponibles pour suppression
+    if not founded_mails or len(founded_mails) == 0:
+        return jsonify({"error": "Aucun email trouvé à supprimer."}), 400
+
+    try:
+        # Supprimer les emails
+        delete_them = wolf.delete_messages(founded_mails)
+        if delete_them:
+            return jsonify({"message": f"{len(founded_mails)} emails marqués comme supprimés !"}), 200
+        else:
+            # Cas où la suppression échoue sans lever d'exception
+            return jsonify({"error": "Impossible de supprimer les emails."}), 500
+    except Exception as e:
+        # Gérer les exceptions levées pendant la suppression
+        return jsonify({"error": f"Erreur interne : {str(e)}"}), 500
+
         
 
 
@@ -214,7 +226,7 @@ def purge():
         try:
             purge_them = wolf.expunge()
             if purge_them:
-                return jsonify({"message":f"{len(founded_mails)} nettoyer avec succès !"})
+                return jsonify({"message":f"{len(founded_mails)} nettoyer avec succès !"}), 200
 
         except Exception as e:
             return jsonify({"error": str(e)}), 500
